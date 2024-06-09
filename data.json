@@ -1,6 +1,21 @@
-[
+{
+  "post": [
     {
-        "title" : "첫글",
-        "content" : "얼마만의 JSON server"
+      "id": "1",
+      "title": "첫글",
+      "content": "얼마만의 JSON server"
+    },
+    {
+      "id": "2",
+      "title": "두번째글",
+      "content": "얼마만의 JSON server2"
     }
-]
+  ],
+  "user": [
+    {
+      "id": "1",
+      "name": "나는",
+      "age": "20"
+    }
+  ]
+}

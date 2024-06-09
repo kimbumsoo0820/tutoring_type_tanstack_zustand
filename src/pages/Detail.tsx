@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useModal from "../hooks/useModal";
 import Modal from "../components/modal/Modal";
 import WriteForm from "../components/WriteForm";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface Post {
   title: string;
@@ -12,26 +12,38 @@ export interface Post {
 
 const Detail: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
-  // const [post, setPost] = useState<Post[]>([
-  //   {
-  //     title: "initialTitle",
-  //     content: "initialContent",
-  //   },
-  // ]);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const setPost = async (newPost: Post) => {
-    return await fetch("http://localhost:3003/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPost),
-    });
+  const setPostToDataBase = async (newPost: Post): Promise<Response> => {
+    console.log("???", newPost);
+    try {
+      const res = await fetch("http://localhost:3003/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPost),
+      });
+      return res;
+    } catch (e) {
+      console.error("Error in setPostToDataBase", e);
+      throw new Error("글쓰기 오류");
+    }
   };
 
+  const postMutation = useMutation<Response, Error, Post>({
+    mutationFn: setPostToDataBase,
+    onSuccess: () => {
+      console.log("데이터 삽입 성공");
+      queryClient.invalidateQueries({ queryKey: ["post"] }); // 해당 키의 캐시가 더이상 유효한 데이터가 아님을 알림 => 다시 받아옴
+    },
+  });
+
   const onClickSetPost = (newPost: Post): void => {
+    console.log("Mutation state:", postMutation);
     console.log("onClickSetPost newPost =>", newPost);
-    const { data, isError, isPending, error } = useMutation({
-      mutationFn: setPost(newPost),
-    });
+    postMutation.mutate(newPost);
+    console.log("After mutate");
+    navigate("/");
     // setPost((prevPost) => [...prevPost, newPost]);
   };
 
@@ -47,13 +59,6 @@ const Detail: React.FC = () => {
       <Modal isOpen={isOpen} closeModal={closeModal}>
         <WriteForm onClickSetPost={onClickSetPost} closeModal={closeModal} />
       </Modal>
-
-      {post.map((postData) => (
-        <div style={{ marginTop: "50px" }} key={`title ${postData.title}`}>
-          <h2>{postData.title}</h2>
-          <h3>{postData.content}</h3>
-        </div>
-      ))}
     </div>
   );
 };
